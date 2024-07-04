@@ -90,13 +90,14 @@
         };
 
         function getItemEmoji(itemName) {
-            const lowercaseItem = itemName.toLowerCase();
-            for (const [key, value] of Object.entries(itemToEmojiMap)) {
-                if (lowercaseItem.includes(key)) {
-                    return value;
-                }
-            }
-            return '🛒';
+    const lowercaseItem = itemName.trim().toLowerCase();
+    for (const [key, value] of Object.entries(itemToEmojiMap)) {
+        if (lowercaseItem === key || lowercaseItem.includes(key)) {
+            return value;
+        }
+    }
+    return '🛒';
+}
         }
 
         function createItemElement(item) {

@@ -90,14 +90,13 @@
         };
 
         function getItemEmoji(itemName) {
-    const lowercaseItem = itemName.trim().toLowerCase();
-    for (const [key, value] of Object.entries(itemToEmojiMap)) {
-        if (lowercaseItem === key || lowercaseItem.includes(key)) {
-            return value;
-        }
-    }
-    return '🛒';
-}
+            const lowercaseItem = itemName.trim().toLowerCase();
+            for (const [key, value] of Object.entries(itemToEmojiMap)) {
+                if (lowercaseItem === key || lowercaseItem.includes(key)) {
+                    return value;
+                }
+            }
+            return '🛒';
         }
 
         function createItemElement(item) {
@@ -120,6 +119,8 @@
             if (itemText) {
                 try {
                     statusDiv.textContent = 'מוסיף פריט...';
+                    const emoji = getItemEmoji(itemText);
+                    console.log('Emoji selected:', emoji);
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: {
@@ -127,11 +128,12 @@
                         },
                         body: JSON.stringify({
                             text: itemText,
-                            emoji: getItemEmoji(itemText)
+                            emoji: emoji
                         }),
                     });
                     if (!response.ok) throw new Error('שגיאה בהוספת פריט');
                     const newItem = await response.json();
+                    console.log('New item from server:', newItem);
                     const li = createItemElement(newItem);
                     shoppingList.appendChild(li);
                     statusDiv.textContent = 'פריט נוסף בהצלחה';
@@ -162,6 +164,7 @@
                 const response = await fetch(API_URL);
                 if (!response.ok) throw new Error('שגיאה בטעינת הרשימה');
                 const items = await response.json();
+                console.log('Loaded items:', items);
                 shoppingList.innerHTML = '';
                 items.forEach(item => {
                     const li = createItemElement(item);

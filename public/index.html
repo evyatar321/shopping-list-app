@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>רשימת הקניות של אביתר</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        #shopping-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #shopping-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        #shopping-list li:last-child {
+            border-bottom: none;
+        }
+        .delete-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        #new-item {
+            width: 70%;
+            padding: 10px;
+        }
+        #add-item {
+            width: 25%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .item-content {
+            display: flex;
+            align-items: center;
+        }
+        .item-icon {
+            font-size: 1.5em;
+            margin-left: 10px;
+        }
+        #status {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>רשימת הקניות של אביתר</h1>
+    <div>
+        <input type="text" id="new-item" placeholder="הוסף פריט חדש">
+        <button id="add-item">הוסף</button>
+    </div>
+    <ul id="shopping-list"></ul>
+    <div id="status"></div>
+
+    <script>
+        const shoppingList = document.getElementById('shopping-list');
+        const newItemInput = document.getElementById('new-item');
+        const addItemButton = document.getElementById('add-item');
+        const statusDiv = document.getElementById('status');
+
+        const API_URL = '/api/shopping-list';
+
+        const itemToEmojiMap = {
+            'בצל': '🧅', 'שום': '🧄', 'אפונה': '🛒', 'ממתק': '🍬',
+            'חלב': '🥛', 'לחם': '🍞', 'ביצים': '🥚', 'גבינה': '🧀', 'עגבניות': '🍅',
+            'מלפפונים': '🥒', 'תפוחים': '🍎', 'בננות': '🍌', 'בשר': '🥩', 'עוף': '🍗',
+            'דגים': '🐟', 'אורז': '🍚', 'פסטה': '🍝', 'קמח': '🌾', 'סוכר': '🍬',
+            'שמן': '🫙', 'מים': '💧', 'יין': '🍷', 'בירה': '🍺', 'קפה': '☕',
+            'תה': '🍵', 'פלפל': '🌶️', 'מלח': '🧂', 'לימון': '🍋', 'תפוז': '🍊',
+            'אבטיח': '🍉', 'ענבים': '🍇', 'תות': '🍓', 'אבוקדו': '🥑'
+        };
+
+        function getItemEmoji(itemName) {
+            const lowercaseItem = itemName.toLowerCase();
+            for (const [key, value] of Object.entries(itemToEmojiMap)) {
+                if (lowercaseItem.includes(key)) {
+                    return value;
+                }
+            }
+            return '🛒';
+        }
+
+        function createItemElement(item) {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="item-content">
+                    <span class="item-icon">${item.emoji}</span>
+                    <span class="item-text">${item.text}</span>
+                </div>
+                <button class="delete-btn">מחק</button>
+            `;
+            li.setAttribute('data-id', item.id);
+            li.querySelector('.delete-btn').addEventListener('click', function() {
+                deleteItem(item.id);
+            });
+            return li;
+        }
+
+        async function addItem(itemText) {
+            if (itemText) {
+                try {
+                    statusDiv.textContent = 'מוסיף פריט...';
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            text: itemText,
+                            emoji: getItemEmoji(itemText)
+                        }),
+                    });
+                    if (!response.ok) throw new Error('שגיאה בהוספת פריט');
+                    const newItem = await response.json();
+                    const li = createItemElement(newItem);
+                    shoppingList.appendChild(li);
+                    statusDiv.textContent = 'פריט נוסף בהצלחה';
+                } catch (error) {
+                    statusDiv.textContent = `שגיאה: ${error.message}`;
+                }
+            }
+        }
+
+        async function deleteItem(id) {
+            try {
+                statusDiv.textContent = 'מוחק פריט...';
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) throw new Error('שגיאה במחיקת פריט');
+                const li = document.querySelector(`li[data-id="${id}"]`);
+                if (li) li.remove();
+                statusDiv.textContent = 'פריט נמחק בהצלחה';
+            } catch (error) {
+                statusDiv.textContent = `שגיאה: ${error.message}`;
+            }
+        }
+
+        async function loadList() {
+            try {
+                statusDiv.textContent = 'טוען רשימה...';
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('שגיאה בטעינת הרשימה');
+                const items = await response.json();
+                shoppingList.innerHTML = '';
+                items.forEach(item => {
+                    const li = createItemElement(item);
+                    shoppingList.appendChild(li);
+                });
+                statusDiv.textContent = 'רשימה נטענה בהצלחה';
+            } catch (error) {
+                statusDiv.textContent = `שגיאה: ${error.message}`;
+            }
+        }
+
+        addItemButton.addEventListener('click', () => {
+            addItem(newItemInput.value.trim());
+            newItemInput.value = '';
+        });
+
+        newItemInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addItem(newItemInput.value.trim());
+                newItemInput.value = '';
+            }
+        });
+
+        // טען את הרשימה בעת טעינת הדף
+        loadList();
+    </script>
+</body>
+</html>

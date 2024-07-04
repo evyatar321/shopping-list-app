@@ -13,8 +13,11 @@ app.use(express.static('public'));
 async function readList() {
     try {
         const data = await fs.readFile(dataFile, 'utf8');
-        return JSON.parse(data);
+        const list = JSON.parse(data);
+        console.log('Current list:', list);
+        return list;
     } catch (error) {
+        console.error('Error reading list:', error);
         return [];
     }
 }
@@ -33,8 +36,9 @@ app.post('/api/shopping-list', async (req, res) => {
     const newItem = {
         id: Date.now().toString(),
         text: req.body.text,
-        emoji: req.body.emoji
+        emoji: req.body.emoji || '🛒'
     };
+    console.log('New item received:', newItem);
     list.push(newItem);
     await writeList(list);
     res.status(201).json(newItem);

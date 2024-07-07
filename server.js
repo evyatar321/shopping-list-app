@@ -1,56 +1,43 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs').promises;
-const path = require('path');
+const { MongoClient } = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const dataFile = path.join(__dirname, 'shopping-list.json');
+const uri = "YOUR_MONGODB_CONNECTION_STRING"; // החלף עם מחרוזת החיבור שלך
 
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-async function readList() {
-    try {
-        const data = await fs.readFile(dataFile, 'utf8');
-        const list = JSON.parse(data);
-        console.log('Current list:', list);
-        return list;
-    } catch (error) {
-        console.error('Error reading list:', error);
-        return [];
-    }
-}
+let db;
 
-async function writeList(list) {
-    await fs.writeFile(dataFile, JSON.stringify(list, null, 2));
-}
+MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(client => {
+    console.log('Connected to Database');
+    db = client.db('shopping_list_db');
+  })
+  .catch(error => console.error(error));
 
 app.get('/api/shopping-list', async (req, res) => {
-    const list = await readList();
-    res.json(list);
+  const items = await db.collection('items').find().toArray();
+  res.json(items);
 });
 
 app.post('/api/shopping-list', async (req, res) => {
-    const list = await readList();
-    const newItem = {
-        id: Date.now().toString(),
-        text: req.body.text,
-        emoji: req.body.emoji || '🛒'
-    };
-    console.log('New item received:', newItem);
-    list.push(newItem);
-    await writeList(list);
-    res.status(201).json(newItem);
+  const newItem = {
+    id: Date.now().toString(),
+    text: req.body.text,
+    emoji: req.body.emoji || '🛒'
+  };
+  await db.collection('items').insertOne(newItem);
+  res.status(201).json(newItem);
 });
 
 app.delete('/api/shopping-list/:id', async (req, res) => {
-    let list = await readList();
-    list = list.filter(item => item.id !== req.params.id);
-    await writeList(list);
-    res.sendStatus(204);
+  await db.collection('items').deleteOne({ id: req.params.id });
+  res.sendStatus(204);
 });
 
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });

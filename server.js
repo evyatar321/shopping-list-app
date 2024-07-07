@@ -4,7 +4,7 @@ const { MongoClient } = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const uri = "YOUR_MONGODB_CONNECTION_STRING"; // החלף עם מחרוזת החיבור שלך
+const uri = process.env.MONGODB_URI;
 
 app.use(bodyParser.json());
 app.use(express.static('public'));
